@@ -1,0 +1,75 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "org.hidetake:gradle-ssh-plugin:2.10.1"
+        classpath "org.codehaus.groovy:groovy-backports-compat23:2.4.6"
+    }
+}
+
+plugins {
+    id "org.hidetake.ssh" version "2.10.1"
+    id 'org.jetbrains.kotlin.multiplatform' version '1.4.30'
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+kotlin {
+    linuxArm32Hfp("native") {
+        binaries {
+            executable {
+                entryPoint "main"
+                linkerOpts("-Lsrc/lib/pigpio", "-lpigpio")
+            }
+        }
+
+        compilations.main.cinterops {
+            pigpio {
+                includeDirs 'src/include/pigpio'
+            }
+        }
+    }
+}
+
+remotes {
+    pi {
+        host = '192.168.178.165'
+        user = 'pi'
+        password = '123'
+    }
+}
+
+String fileName = "TestRaspberry.kexe"
+String sourceFile = "$buildDir/bin/native/releaseExecutable/$fileName"
+String destinationDirOnPi = "Projects/TestRaspberry"
+String destinationFileOnPi = "Projects/TestRaspberry/$fileName"
+
+task sendToPi {
+    doLast {
+        ssh.run {
+            session(remotes){
+                execute "mkdir -p $destinationDirOnPi"
+                put from: sourceFile, into: destinationDirOnPi
+            }
+        }
+    }
+}
+
+task runOnPi {
+    doLast {
+        ssh.run {
+            session(remotes){
+                execute "chmod +x $destinationFileOnPi"
+                execute "sudo ./$destinationFileOnPi"
+            }
+        }
+    }
+}
