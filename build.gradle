@@ -52,7 +52,7 @@ String sourceFile = "$buildDir/bin/native/releaseExecutable/$fileName"
 String destinationDirOnPi = "Projects/TestRaspberry"
 String destinationFileOnPi = "Projects/TestRaspberry/$fileName"
 
-task sendToPi {
+task send {
     doLast {
         ssh.run {
             session(remotes){
@@ -63,12 +63,32 @@ task sendToPi {
     }
 }
 
-task runOnPi {
+task run {
     doLast {
         ssh.run {
             session(remotes){
                 execute "chmod +x $destinationFileOnPi"
                 execute "sudo ./$destinationFileOnPi"
+            }
+        }
+    }
+}
+
+task terminate {
+    doLast {
+        ssh.run {
+            session(remotes){
+                execute "sudo ps aux | grep .kexe | awk '{print \$2}' | xargs sudo kill -9"
+            }
+        }
+    }
+}
+
+task remove {
+    doLast {
+        ssh.run {
+            session(remotes){
+                execute "sudo rm -rf $destinationFileOnPi"
             }
         }
     }
